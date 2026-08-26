@@ -15,6 +15,7 @@ httptools==0.7.1
 idna==3.11
 passlib==1.7.4
 pycparser==2.23
+PyJWT==2.8.0
 pydantic==2.12.5
 pydantic_core==2.41.5
 PyMySQL==1.1.2

@@ -29,6 +29,7 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
     """
     处理数据库完整性约束错误
     """
+    # 获取错误信息，exc.orig 是 SQLAlchemy 异常里的一个属性，指向底层数据库驱动抛出的原始异常
     error_msg = str(exc.orig)
 
     # 判断具体的约束错误类型

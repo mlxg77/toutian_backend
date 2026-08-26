@@ -8,12 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.users import User, UserToken
 from schemas.users import UserRequest, UserUpdateRequest
 from utils import security
+from utils.jwt_util import create_access_token
 
 
 # 根据用户名查询数据库
 async def get_user_by_username(db: AsyncSession, username: str):
     query = select(User).where(User.username == username)
     result = await db.execute(query)
+    # scalar_one_or_none(): 返回一个结果或者 None
     return result.scalar_one_or_none()
 
 
@@ -21,9 +23,12 @@ async def get_user_by_username(db: AsyncSession, username: str):
 async def create_user(db: AsyncSession, user_data: UserRequest):
     # 先密码加密处理 → add
     hashed_password = security.get_hash_password(user_data.password)
+    # 内存里面的对象，此时id 为 None
     user = User(username=user_data.username, password=hashed_password)
     db.add(user)
+    # 提交到数据库，但此时数据库里的 id 仍然是 None
     await db.commit()
+    # 刷新对象，从数据库读回最新的数据，包含 id
     await db.refresh(user)  # 从数据库读回最新的 user
     return user
 
@@ -47,6 +52,19 @@ async def create_token(db: AsyncSession, user_id: int):
         await db.commit()
 
     return token
+
+
+# ========== JWT 版 token 生成（与原 create_token 二选一） ==========
+async def create_token_jwt(db: AsyncSession, user_id: int) -> str:
+    """
+    JWT 方式生成 token：
+    - 不写数据库，纯本地签名生成
+    - 返回的 token 字符串，前端放到 Header 里就能用
+    - 过期时间由 JWT 内部的 exp 字段控制
+    注意：这里 db 参数暂时用不上，留在这里是为了跟 create_token 接口保持一致，
+          方便上层路由无感切换（以后如果要配合 Redis 黑名单就能直接用上）。
+    """
+    return create_access_token(user_id=user_id)
 
 
 async def authenticate_user(db: AsyncSession, username: str, password: str):
@@ -78,6 +96,7 @@ async def update_user(db: AsyncSession, username: str, user_data: UserUpdateRequ
     # update(User).where(User.username == username).values(字段=值, 字段=值)
     # user_data 是一个Pydantic类型，得到字典 → ** 解包
     # 没有设置值的不更新
+    # model_dump: Pydantic 模型转字典
     query = update(User).where(User.username == username).values(**user_data.model_dump(
         exclude_unset=True,
         exclude_none=True

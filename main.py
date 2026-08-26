@@ -9,7 +9,7 @@ app = FastAPI()
 # 注册异常处理器
 register_exception_handlers(app)
 
-
+# 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],     # 允许的源，开发阶段允许所有源，生产环境需要指定源

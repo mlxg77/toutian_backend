@@ -15,6 +15,7 @@ async_engine = create_async_engine(
 AsyncSessionLocal = async_sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
+    # expire_on_commit=False：提交完事务后，还能继续用刚才那个对象里的数据，不会再偷偷去查数据库。
     expire_on_commit=False
 )
 

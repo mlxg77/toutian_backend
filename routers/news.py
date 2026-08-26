@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/news", tags=["news"])
 # 3. 在 crud 文件夹里面创建文件，封装操作数据库的方法
 # 4. 在路由处理函数里面调用 crud 封装好的方法，响应结果
 
-
+# 获取新闻分类
 @router.get("/categories")
 async def get_categories(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     # 先获取数据库里面新闻分类数据 → 先定义模型类 → 封装查询数据的方法
@@ -27,7 +27,7 @@ async def get_categories(skip: int = 0, limit: int = 100, db: AsyncSession = Dep
         "data": categories
     }
 
-
+# 获取新闻列表
 @router.get("/list")
 async def get_news_list(
         category_id: int = Query(..., alias="categoryId"),
@@ -51,7 +51,7 @@ async def get_news_list(
         }
     }
 
-
+# 获取新闻详情
 @router.get("/detail")
 async def get_news_detail(news_id: int = Query(..., alias="id"), db: AsyncSession = Depends(get_db)):
     # 获取新闻详情 + 浏览量+1 + 相关新闻
