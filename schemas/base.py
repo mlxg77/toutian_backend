@@ -12,7 +12,7 @@ class NewsItemBase(BaseModel):
     author: Optional[str] = None
     category_id: int = Field(alias="categoryId")
     views: int
-    publish_time: Optional[datetime] = Field(None, alias="publishedTime")
+    publish_time: Optional[datetime] = Field(None, alias="publishTime")
 
     model_config = ConfigDict(
         from_attributes=True,

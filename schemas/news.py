@@ -5,6 +5,20 @@ from pydantic import Field, ConfigDict, BaseModel
 from schemas.base import NewsItemBase
 
 
+class NewsListResponse(BaseModel):
+    """
+    新闻列表响应数据
+    """
+    list: list[NewsItemBase]
+    total: int
+    has_more: bool = Field(alias="hasMore")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True
+    )
+
+
 class RelatedNewsResponse(BaseModel):
     """
     相关新闻响应（简化版，只包含必要字段）
