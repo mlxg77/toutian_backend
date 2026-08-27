@@ -2,7 +2,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.news import News
 
-
+# 增加新闻浏览量
 async def increase_news_views(db: AsyncSession, news_id: int):
     stmt = update(News).where(News.id == news_id).values(views=News.views + 1)
     result = await db.execute(stmt)

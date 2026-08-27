@@ -32,10 +32,34 @@ async def get_news_list(db: AsyncSession, category_id: int, skip: int = 0, limit
     # 先尝试从缓存获取新闻列表
     # 跳过的数量skip = (页码 -1) * 每页数量 → 页码 = 跳过的数量 // 每页数量 + 1
     # await get_cache_news_list(分类id, 页码, 每页数量)
-    page = skip // limit + 1
+    page = skip // limit + 1 # //是地板除，表示除法结果的整数部分
     cached_list = await get_cache_news_list(category_id, page, limit)  # 缓存数据 json
+    # cached_list的格式：
+    # [
+    #   {
+    #       "id": 1, 
+    #       "title": "新闻标题", 
+    #       "content": "新闻内容", 
+    #       "image": "图片URL", 
+    #       "author": "作者", 
+    #       "publishTime": "2023-04-01 12:00:00", 
+    #       "categoryId": 1, 
+    #       "views": 100
+    #   }, 
+    #   {
+    #       "id": 2, 
+    #       "title": "新闻标题2", 
+    #       "content": "新闻内容2", 
+    #       "image": "图片URL2", 
+    #       "author": "作者2", 
+    #       "publishTime": "2023-04-02 12:00:00", 
+    #       "categoryId": 1, 
+    #       "views": 200
+    #   }
+    # ]
     if cached_list:
         # return cached_list  # 要的是 ORM
+        # **item 解包字典，等价于 item["id"], item["title"], ...
         return [News(**item) for item in cached_list]
 
     # 查询的是指定分类下的所有新闻
@@ -46,8 +70,10 @@ async def get_news_list(db: AsyncSession, category_id: int, skip: int = 0, limit
     # 写入缓存
     if news_list:
         # 先把 ORM 数据 转换 字典才能写入缓存
-        # ORM 转成 Pydantic，再转为 字典
+        # ORM 转成 Pydantic（model_validate），再转为 字典（model_dump）
         # by_alias=False 不适用别名，保存 Python 风格，因为 Redis 数据是给后端用的
+        # mode="json"：确保值都是 JSON 兼容类型，方便 Redis 存储，避免类型错误，例如 datetime 类型不能转换为 JSON。
+        # by_alias=False：用 Python 原始字段名（category_id），不用前端别名（categoryId）
         news_data = [NewsItemBase.model_validate(item).model_dump(mode="json", by_alias=False) for item in news_list]
         await set_cache_news_list(category_id, page, limit, news_data)
 

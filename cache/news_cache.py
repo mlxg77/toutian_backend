@@ -33,10 +33,12 @@ async def set_cache_news_list(category_id: Optional[int], page: int, size: int, 
 # 读取缓存-新闻列表
 async def get_cache_news_list(category_id: Optional[int], page: int, size: int):
     category_part = category_id if category_id is not None else "all"
+    # 根据category_id 和 page、size 组合成key
     key = f"{NEWS_LIST_PREFIX}{category_part}:{page}:{size}"
     return await get_json_cache(key)
 
 
+# 获取缓存-新闻详情
 async def get_cached_news_detail(news_id: int) -> Optional[Dict[str, Any]]:
     """
     获取缓存的新闻详情
@@ -51,6 +53,7 @@ async def get_cached_news_detail(news_id: int) -> Optional[Dict[str, Any]]:
     return await get_json_cache(key)
 
 
+# 写入缓存-新闻详情
 async def cache_news_detail(news_id: int, news_data: Dict[str, Any], expire: int = 300) -> bool:
     """
     缓存新闻详情
@@ -66,7 +69,7 @@ async def cache_news_detail(news_id: int, news_data: Dict[str, Any], expire: int
     key = f"{NEWS_DETAIL_PREFIX}{news_id}"
     return await set_cache(key, news_data, expire)
 
-
+# 写入缓存-相关新闻
 async def cache_related_news(news_id: int, category_id: int, related_list: List[Dict[str, Any]], expire: int = 1800) -> bool:
     """
     缓存相关新闻列表
@@ -83,7 +86,7 @@ async def cache_related_news(news_id: int, category_id: int, related_list: List[
     key = f"{RELATED_NEWS_PREFIX}{news_id}:{category_id}"
     return await set_cache(key, related_list, expire)
 
-
+# 读取缓存-相关新闻
 async def get_cached_related_news(news_id: int, category_id: int) -> Optional[List[Dict[str, Any]]]:
     """
     获取缓存的相关新闻列表
