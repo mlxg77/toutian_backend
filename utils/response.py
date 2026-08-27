@@ -10,4 +10,5 @@ def success_response(message: str = "success", data=None):
     }
 
     # 目标：把任何的 FastAPI、Pydantic、ORM 对象 都要正常响应 → code、message、data
+    # jsonable_encoder：把任何的 FastAPI、Pydantic、ORM 对象 转换为 JSON 兼容的字典
     return JSONResponse(content=jsonable_encoder(content))

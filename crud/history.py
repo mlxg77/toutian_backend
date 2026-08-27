@@ -31,9 +31,11 @@ async def get_history_list(db: AsyncSession, user_id: int, page: int = 1, page_s
     offset = (page - 1) * page_size
     count_query = select(func.count(History.id)).where(History.user_id == user_id)
     count_result = await db.execute(count_query)
+    # ORM 对象 -> int
     total = count_result.scalar_one()
 
     query = (select(News, History.view_time.label("view_time"), History.id.label("history_id"))
+             # .join() 默认就是 INNER JOIN
              .join(History, History.news_id == News.id)
              .where(History.user_id == user_id)
              .order_by(History.view_time.desc())

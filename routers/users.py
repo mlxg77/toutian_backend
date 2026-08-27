@@ -32,6 +32,7 @@ async def register(
     # ❌ 错误写法：background_tasks.add_task(wrong_welcome_email, db, user.id)
 
     # model_validate 校验数据并转换为指定类型，和 from_attributes=True 一起使用可以对 orm 数据进行转换
+    # token 和 user 来自不同地方，必须用一个 Response 模型把它们组合在一起。
     response_data = UserAuthResponse(token=token, user_info=UserInfoResponse.model_validate(user))
     return success_response(message="注册成功", data=response_data)
 

@@ -36,6 +36,8 @@ async def get_history_list(page: int = Query(1, ge=1),
     has_more = total > page * page_size
 
     history_list = [HistoryNewsItemResponse.model_validate({
+        # **news.__dict__：把 news 对象转换为字典，并展开，等价于 id=news.id, title=news.title, ...
+        # model_dump和__dict__类似，但model_dump是Pydantic模型转字典，__dict__是对象转字典
         **news.__dict__,
         "view_time": view_time,
         "history_id": history_id
