@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any
 
 import redis.asyncio as redis
@@ -24,7 +25,8 @@ async def get_cache(key: str):
     try:
         return await redis_client.get(key)
     except Exception as e:
-        print(f"获取缓存失败：{e}")
+        # 2025-08-27 14:30:15,123 [WARNING] cache_conf.py:27 - 获取缓存失败：Connection refused
+        logging.warning(f"获取缓存失败：{e}")
         return None
 
 
@@ -36,7 +38,7 @@ async def get_json_cache(key: str):
             return json.loads(data)  # 序列化
         return None
     except Exception as e:
-        print(f"获取 JSON 缓存失败：{e}")
+        logging.warning(f"获取 JSON 缓存失败：{e}")
         return None
 
 
@@ -49,5 +51,5 @@ async def set_cache(key: str, value: Any, expire: int = 3600):
         await redis_client.setex(key, expire, value)
         return True
     except Exception as e:
-        print(f"设置缓存失败：{e}")
+        logging.warning(f"设置缓存失败：{e}")
         return False

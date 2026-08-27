@@ -1,6 +1,14 @@
+import logging
+
 from fastapi import FastAPI
 from routers import news, users, favorite, history
 from fastapi.middleware.cors import CORSMiddleware
+
+# 配置日志格式
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(message)s"
+)
 
 from utils.exception_handlers import register_exception_handlers
 
