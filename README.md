@@ -2,6 +2,15 @@
 
 基于 FastAPI 的新闻资讯类后端服务，包含新闻分类/列表/详情、用户注册登录、收藏、浏览历史等接口，并使用 Redis 做读缓存。
 
+> 📚 **学习文档在 [`docs/`](./docs/) 目录**：
+> [项目学习笔记（从这里开始）](./docs/项目学习笔记.md) — 项目里用到的 FastAPI + SQLAlchemy + Pydantic，锚定到文件行号
+> · [FastAPI 完全手册](./docs/FastAPI完全手册.md)
+> · [SQLAlchemy 2.0 完全手册](./docs/SQLAlchemy2完全手册.md)
+> · [Pydantic v2 完全手册](./docs/Pydantic2完全手册.md)
+> — 后三份各自覆盖对应框架的**全部**知识，不受本项目规模限制。
+>
+> 本文只管**接口清单与运行说明**；想学知识点看 `docs/`。
+
 ## 技术栈
 
 | 类别 | 选型 |
@@ -24,7 +33,8 @@ toutiao_backend/
 ├── schemas/         # DTO / VO（Pydantic 请求体与响应体）
 ├── cache/           # Redis 缓存读写
 ├── config/          # 数据库、Redis 连接与配置
-└── utils/           # 通用工具：响应包装、鉴权依赖、异常与异常处理器
+├── utils/           # 通用工具：响应包装、鉴权依赖、异常与异常处理器
+└── docs/            # 学习文档：项目学习笔记 + FastAPI/SQLAlchemy/Pydantic 三份完全手册
 ```
 
 各目录与经典三层（MVC / 分层架构）的对应关系：
@@ -66,12 +76,44 @@ toutiao_backend/
 
 ## 已知问题（待优化）
 
-- **`crud/news.py` 与 `crud/news_cache.py` 大量重复**：`get_news_count`、`increase_news_views` 两份实现完全相同，后续修改容易改漏。
-- **同一接口混用两个模块**：`routers/news.py` 的列表接口从 `news_cache` 取列表、却从 `news` 取总数，数据来源不一致。
-- **相关新闻返回结构不统一**：`crud/news.py::get_related_news` 手写字典时用了 `publishTime` / `categoryId` 驼峰键，而 `crud/news_cache.py` 版本以 `by_alias=False` 输出下划线键。
-- **配置硬编码**：数据库连接串位于 `config/db_conf.py`，Redis 地址位于 `config/cache_conf.py`，建议改为通过环境变量 / `.env`（项目已依赖 `python-dotenv`）注入。
-- **CORS 全量放开**：`main.py` 中 `allow_origins=["*"]` 仅适用于开发阶段，生产环境需收窄为具体来源。
-- **`echo=True`**：异步引擎开启了 SQL 日志，生产环境建议关闭。
+> 每条均已对照当前代码核实。更详尽的分析与修法见
+> [`docs/项目学习笔记.md` §7【代码里埋的坑】](./docs/项目学习笔记.md#7-代码里埋的坑已核实)。
+
+- 🔴 **删除浏览历史的字段错配**：`routers/history.py:58` 把路径上的 `history_id` 传给了
+  `crud/history.py:49` 的 `news_id` 参数，最终 SQL 条件是 `History.news_id == history_id`。
+  它删的不是「指定记录」而是「该用户下 news_id 恰好等于这个数字的记录」。
+  修法：把 `crud` 里的条件改为 `History.id == history_id` 并重命名参数。
+- 🔴 **`models/users.py:33,34,58` 的 `default=datetime.now()` 多了一对括号**：
+  默认值在模块导入时就被求值一次，所有用户的 `created_at` 都是服务启动时间。
+  应该传函数本体（`default=datetime.now`）。`models/news.py` 里的写法是对的，可对照。
+- 🟡 **四个 `Base` 各自为政**：`models/` 下四个文件各自定义了 `class Base(DeclarativeBase)`，
+  导致四份互相隔离的 `metadata`。`create_all()` 一次只能建出其中一部分表，Alembic 的
+  `--autogenerate` 也无法工作。应抽出单一的 `models/base.py`。
+- 🟡 **浏览量与详情缓存不一致**：`crud/news.py::increase_news_views` 只写库，不失效
+  `news:detail:{id}`。详情缓存 TTL 300s 内，前端看到的浏览量是陈的。
+- 🟡 **列表接口的 COUNT 没过缓存**：`routers/news.py:38-39` 两次调用都走 `news_cache`，
+  但 `crud/news_cache.py::get_news_count` 本体直接查库、没有缓存。
+  结果是即使列表命中缓存，每次请求仍然会打一条 `COUNT(*)`，缓存收益被削掉一半。
+- 🟡 **连接池缺 `pool_recycle` / `pool_pre_ping`**：`config/db_conf.py:7-12` 只设了
+  `pool_size` 与 `max_overflow`。MySQL 会切掉空闲连接，而连接池里仍留着这个死连接，
+  长时间空闲后的第一个请求很可能报 `MySQL server has gone away`。
+- 🟡 **漏注册 `RequestValidationError`**：`utils/exception_handlers.py` 注册了四个处理器但不包括它，
+  所以参数校验失败时返回的是 FastAPI 默认的 422 结构，与其他接口的统一包装不一致。
+- 🟡 **CORS 配置违反规范**：`main.py:23-24` 同时设了 `allow_origins=["*"]` 与
+  `allow_credentials=True`，浏览器会直接拒绝这种组合。生产环境需收窄为具体来源。
+- 🟡 **DAO 层抛 HTTP 异常**：`crud/users.py:108` 在数据访问层直接 `raise HTTPException`，
+  让 `crud` 耦合了 Web 层概念，与其他函数「返回 None / bool 交给路由判断」的风格不统一。
+- 🟡 **`crud/users.py:46-52` 的 commit 不对称**：`create_token` 新建分支 commit 了，
+  更新分支没 commit，靠 `get_db` 兜底。这也暗示了更大的问题：`crud` 与 `get_db` 双重 commit，
+  使得「创建用户 + 生成 Token」无法作为一个事务回滚。
+- 🟢 **时区基准三套混用**：`datetime.now()`、`datetime.utcnow`、`datetime.now(timezone.utc)`
+  在不同文件里共存，跳过 8 小时时差。建议全项目统一用 UTC 入库，展示层再转。
+- 🟢 **配置与密钥硬编码**：数据库连接串位于 `config/db_conf.py`，Redis 地址位于
+  `config/cache_conf.py`，`SECRET_KEY` 位于 `utils/jwt_util.py`。建议改用 `pydantic-settings`
+  从环境变量 / `.env` 注入（项目已依赖 `python-dotenv`）。
+- 🟢 **`echo=True`**：异步引擎开启了 SQL 日志，学习期有用，生产环境建议关闭。
+- 🟢 **残留代码**：`requirements.txt` 同时列了已废弃的 `aioredis` 与实际在用的 `redis`；
+  `test_main.http` 里的 `/hello/User` 路由已不存在；`routers/users.py:40-83` 是教学用伪代码注释块。
 
 ## 本地运行
 
@@ -134,7 +176,7 @@ uvicorn main:app --reload
 |---|---|---|---|
 | POST | `/add` | 新增浏览记录 | ✅ |
 | GET | `/list` | 分页查询浏览历史 | ✅ |
-| DELETE | `/delete/{history_id}` | 删除单条记录（按记录 ID） | ✅ |
+| DELETE | `/delete/{history_id}` | 删除单条记录。⚠️ **当前实现有 bug**：路径参数被当成 `news_id` 用，实际删的是该用户下 `news_id` 等于此值的记录 | ✅ |
 | DELETE | `/clear` | 清空浏览历史 | ✅ |
 
 > 查询参数命名约定：前端传驼峰（`categoryId`、`pageSize`、`newsId`），后端通过 `Query(..., alias=...)` 映射为下划线形式。
