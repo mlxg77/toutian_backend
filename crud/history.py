@@ -42,6 +42,12 @@ async def get_history_list(db: AsyncSession, user_id: int, page: int = 1, page_s
              .offset(offset).limit(page_size))
 
     result = await db.execute(query)
+    # rows 的结构示意（每行是一个三元组）：
+    # [
+    #     (News ORM 对象A, datetime(2026,8,29,10,30), 42),
+    #     (News ORM 对象B, datetime(2026,8,28,9,15),  41),
+    #     ...
+    # ]
     rows = result.all()
     return rows, total
 

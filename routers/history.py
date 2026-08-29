@@ -38,6 +38,7 @@ async def get_history_list(page: int = Query(1, ge=1),
     history_list = [HistoryNewsItemResponse.model_validate({
         # **news.__dict__：把 news 对象转换为字典，并展开，等价于 id=news.id, title=news.title, ...
         # model_dump和__dict__类似，但model_dump是Pydantic模型转字典，__dict__是对象转字典
+        # news 是一个完整的 ORM 对象（News 表的所有列），而 view_time 和 history_id 是两个游离的标量（来自 History 表，不在 news 里）。
         **news.__dict__,
         "view_time": view_time,
         "history_id": history_id

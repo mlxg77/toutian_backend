@@ -50,7 +50,7 @@ async def get_news_list(
 @router.get("/detail")
 async def get_news_detail(news_id: int = Query(..., alias="id"), db: AsyncSession = Depends(get_db)):
     # 获取新闻详情 + 浏览量+1 + 相关新闻
-    news_detail = await news_cache.get_news_detail(db, news_id)
+    news_detail = await news_cache.get_news_detail(db, news_id) # new_detail ORM 对象和其他的缓存不一样
     if not news_detail:
         raise HTTPException(status_code=404, detail="新闻不存在")
 
