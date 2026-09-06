@@ -10,7 +10,11 @@ WORKDIR /build
 COPY requirements.txt .
 
 # 安装到 /install 目录，后面再拷到运行镜像（避免运行镜像带着 gcc 等构建工具）
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+# -i 用清华 pip 源，国内服务器下载快 10 倍以上
+RUN pip install --no-cache-dir --prefix=/install \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    --trusted-host pypi.tuna.tsinghua.edu.cn \
+    -r requirements.txt
 
 # ============================================================
 # 阶段 2：运行层（尽可能小，只带运行时需要的东西）
