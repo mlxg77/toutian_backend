@@ -22,8 +22,9 @@ env
 .env
 .env.*
 
-# 日志和临时文件
+# 日志和临时文件（log/ 运行时由 docker-compose 挂载，不打进镜像）
 *.log
+log/
 *.bak
 .DS_Store
 

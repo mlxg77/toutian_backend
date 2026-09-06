@@ -34,6 +34,10 @@ services:
     # 修改 .env 后需要重启：docker compose down && docker compose up -d
     env_file:
       - .env
+    # 日志挂载：容器内 /app/log 映射到宿主机当前目录的 log/
+    # 应用日志（含 uvicorn 访问日志）按天滚动写到 app.log，宿主机直接打开看
+    volumes:
+      - ./log:/app/log
     # 让容器能解析 host.docker.internal 到宿主机
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -17,5 +17,6 @@ __pycache__/
 .env.*
 !.env.example
 
-# 日志
+# 日志（本地运行产生的 log/ 目录也不提交，服务器上由 Docker 挂载自动创建）
 *.log
+log/
