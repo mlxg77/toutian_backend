@@ -1,12 +1,18 @@
 import json
 import logging
+import os
 from typing import Any
 
+from dotenv import load_dotenv
 import redis.asyncio as redis
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_DB = 0
+load_dotenv()
+
+# 优先从环境变量读取，Docker 里会通过 docker-compose 注入
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)  # 可选
 
 
 # 创建 Redis 的连接对象
@@ -14,6 +20,7 @@ redis_client = redis.Redis(
     host=REDIS_HOST,  # Redis 服务器的主机地址
     port=REDIS_PORT,  # Redis 端口号
     db=REDIS_DB,  # Redis 数据库编号，0~15
+    password=REDIS_PASSWORD,
     decode_responses=True  # 是否将字节数据解码为字符串
 )
 
